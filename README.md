@@ -23,7 +23,7 @@
 
 ## Быстрый старт
 
-### 1. Первая установка (один раз)
+### Первая установка (один раз)
 ```powershell
 cd frontend
 npm install
@@ -33,36 +33,11 @@ cd ..\backend
 pip install -r requirements.txt
 ```
 
-### 2. Настройка AI-интервьюера (обязательно)
-Откройте файл `.env` в корне проекта и вставьте ключ OpenRouter:
-```
-OPENROUTER_KEY=sk-or-v1-ваш-ключ-здесь
-```
-Бесплатный ключ (без карты): https://openrouter.ai/keys
-
-### 3. Запуск (каждый раз)
+### Запуск (каждый раз)
 ```powershell
 .\start.bat
 ```
 Скрипт автоматически: собирает фронтенд → копирует в Electron → запускает бэкенд → открывает приложение.
-
-### Ручной запуск (3 терминала)
-```powershell
-# Терминал 1: Бэкенд
-cd backend
-uvicorn app.main:app --port 8000
-
-# Терминал 2: Сборка фронтенда
-cd frontend
-npm run build
-# Скопировать содержимое frontend\dist в electron\web
-
-# Терминал 3: Десктоп
-cd electron
-.\node_modules\.bin\electron .
-```
-
----
 
 ## Роли пользователей
 
@@ -75,34 +50,6 @@ cd electron
 
 ---
 
-## Учётные записи
-
-### Администратор
-| Email | Пароль |
-|-------|--------|
-| admin@platform.ru | Admin2024! |
-
-### HR-менеджеры
-| Email | Пароль | Компания |
-|-------|--------|----------|
-| hr@company.ru | HrAdmin2024! | TechVision Labs |
-| hr2@company.ru | HrManager2024! | DataFlow Solutions |
-
-### Кандидаты
-| Email | Пароль | ФИО | Балл | Рекомендация |
-|-------|--------|-----|------|-------------|
-| candidate1@mail.ru | Candidate1Pass! | Петров Дмитрий Сергеевич | 85% | Нанять |
-| candidate2@mail.ru | Candidate2Pass! | Сидорова Елена Александровна | 62% | На рассмотрении |
-| candidate3@gmail.com | Candidate3Pass! | Козлов Андрей Викторович | 92% | Нанять |
-| candidate4@yandex.ru | Candidate4Pass! | Новикова Анна Игоревна | 55% | На рассмотрении |
-| candidate5@mail.ru | Candidate5Pass! | Федоров Сергей Павлович | 78% | Нанять |
-| candidate6@gmail.com | Candidate6Pass! | Кузнецова Мария Владимировна | 88% | Нанять |
-| candidate7@mail.ru | Candidate7Pass! | Морозов Иван Алексеевич | 35% | Отказ |
-| candidate8@mail.ru | Candidate8Pass! | Волкова Дарья Николаевна | 71% | Нанять |
-| candidate9@mail.ru | Candidate9Pass! | Соколов Павел Дмитриевич | 42% | Отказ |
-| candidate10@mail.ru | Candidate10Pass! | Лебедева Ольга Сергеевна | 68% | На рассмотрении |
-
----
 
 ## Компании и вакансии
 
@@ -132,24 +79,6 @@ cd electron
 | Тестирование (QA) | Тест-кейсы, автоматизация, баг-репорты | Написание тест-кейсов, pytest, API-тесты |
 | Data Science | ML, статистика, pandas | Статистические тесты, NLP, анализ данных |
 
----
-
-## Тестовые данные (заполняются автоматически)
-
-При первом запуске система автоматически создаёт:
-- **2 компании** с 6 вакансиями
-- **1 администратор** + 2 HR + 10 кандидатов
-- **10 завершённых интервью** с баллами от 35% до 92%
-- **50 задач** с решениями (код на Python)
-- **60 сообщений** AI-интервьюера с кандидатами (реалистичные диалоги)
-- **10 сообщений** в переписке HR↔кандидаты (оффер, приглашение, обратная связь)
-- **Античит-события** (переключение вкладок, вставка кода)
-- **2 тикета техподдержки** (баг + вопрос)
-- **Журнал аудита** (логины, решения HR, старт системы)
-- **20 шаблонов задач** по всем направлениям
-
----
-
 ## Безопасность
 
 | Механизм | Реализация |
@@ -169,143 +98,8 @@ cd electron
 | Компонент | Описание |
 |-----------|----------|
 | AI-интервьюер | LLM через OpenRouter (LLaMA 3.3 70B, бесплатно). Задаёт наводящие вопросы, не даёт готовый код |
-| Fallback цепочка | Scibox → OpenRouter → Groq. Если один недоступен — следующий |
+| Fallback цепочка | 
 | Soft skills | Автоматический анализ стиля общения: вежливость, структурность, ясность |
 | Рекомендации | AI формирует рекомендацию: нанять / на рассмотрении / отказ |
 
 ---
-
-## API (Swagger)
-
-После запуска бэкенда: http://localhost:8000/docs
-
-### Основные эндпоинты
-| Метод | Путь | Описание |
-|-------|------|----------|
-| POST | /api/auth/register | Регистрация кандидата |
-| POST | /api/auth/login | Авторизация |
-| GET | /api/auth/me | Текущий пользователь |
-| GET | /api/auth/user/{id} | Профиль пользователя |
-| POST | /api/interviews/ | Создать интервью |
-| POST | /api/interviews/{id}/start | Начать интервью |
-| POST | /api/interviews/{id}/tasks/{tid}/submit | Отправить решение |
-| POST | /api/chat/send | Сообщение AI-интервьюеру |
-| GET | /api/hr/candidates | Список кандидатов (HR) |
-| GET | /api/hr/analytics | Аналитика (HR) |
-| GET | /api/hr/compare | Сравнение кандидатов (HR) |
-| GET | /api/hr/session/{id}/code | Экспорт кода (HR) |
-| GET | /api/hr/report/session/{id}/pdf | PDF-отчёт (HR) |
-| GET | /api/hr/report/export/xlsx | Excel-экспорт (HR) |
-| GET | /api/vacancies/ | Список вакансий |
-| POST | /api/vacancies/ | Создать вакансию (HR) |
-| PUT | /api/vacancies/{id} | Редактировать вакансию (HR) |
-| DELETE | /api/vacancies/{id} | Удалить вакансию (HR) |
-| POST | /api/messages/send | Отправить сообщение |
-| GET | /api/messages/conversations | Список диалогов |
-| GET | /api/messages/search | Поиск пользователей |
-| GET | /api/admin/users | Все пользователи (Админ) |
-| POST | /api/admin/users/{id}/block | Блокировка (Админ) |
-| GET | /api/admin/stats | Статистика платформы (Админ) |
-| GET | /api/admin/audit | Журнал аудита (Админ) |
-| POST | /api/support/tickets | Создать тикет |
-| GET | /api/support/tickets | Мои тикеты / Все (Админ) |
-| POST | /api/support/tickets/{id}/reply | Ответить на тикет |
-
----
-
-## Структура проекта
-
-```
-project/
-├── backend/
-│   ├── app/
-│   │   ├── admin/          # Панель администратора
-│   │   ├── ai_interviewer/ # AI-чат с кандидатом
-│   │   ├── anticheat/      # Античит-система
-│   │   ├── auth/           # JWT, bcrypt, роли
-│   │   ├── code_executor/  # Запуск кода кандидата
-│   │   ├── hr/             # HR дашборд, аналитика
-│   │   ├── interviews/     # Оркестратор интервью
-│   │   ├── messages/       # Переписка HR↔кандидат
-│   │   ├── metrics/        # Снэпшоты кода
-│   │   ├── models/         # SQLAlchemy ORM (15 таблиц)
-│   │   ├── reports/        # PDF + Excel отчёты
-│   │   ├── scibox/         # Универсальный LLM-клиент
-│   │   ├── support/        # Тикеты техподдержки
-│   │   ├── tasks/          # Генератор задач
-│   │   ├── vacancies/      # CRUD вакансий
-│   │   ├── vpn_service/    # VPN-модуль (архитектура)
-│   │   ├── main.py         # FastAPI точка входа
-│   │   ├── database.py     # SQLite + aiosqlite
-│   │   └── seed.py         # Автозаполнение тестовых данных
-│   └── requirements.txt
-├── frontend/
-│   └── src/
-│       ├── pages/
-│       │   ├── AdminDashboard.jsx   # Панель администратора
-│       │   ├── HRDashboard.jsx      # Панель HR
-│       │   ├── HRReplay.jsx         # Replay Mode
-│       │   ├── InterviewSelector.jsx # Выбор направления/уровня
-│       │   ├── InterviewWorkspace.jsx# Рабочее пространство (код+чат+таймер)
-│       │   ├── Messages.jsx         # Мессенджер
-│       │   ├── Profile.jsx          # Профиль (фото, резюме, результаты)
-│       │   ├── Vacancies.jsx        # Страница вакансий
-│       │   ├── UserProfileView.jsx  # Просмотр профиля (резюме)
-│       │   └── ...
-│       ├── App.jsx
-│       └── api/client.js
-├── electron/
-│   └── main.js
-├── docs/
-│   └── architecture.docx   # Архитектурный документ (10 разделов)
-├── .env                     # API ключи
-├── start.bat                # Запуск одной командой
-└── README.md
-```
-
----
-
-## Дорожная карта
-
-| Версия | Статус | Функции |
-|--------|--------|---------|
-| v1.0 | ✅ Выполнено | Базовое собеседование, AI-чат, античит, отчёты PDF/Excel |
-| v1.5 | ✅ Выполнено | Переписка HR↔кандидат, вакансии, профили с фото и резюме |
-| v2.0 | ✅ Выполнено | Администратор, техподдержка, аудит, сравнение кандидатов, экспорт кода |
-| v2.5 | 📋 План | Воронка найма (4 этапа), шаблоны собеседований, код-ревью задачи |
-| v3.0 | 📋 План | Прокторинг (веб-камера), VPN-модуль, полное шифрование БД |
-
-## Настройка отправки email (SMTP)
-
-Для реальной отправки кодов подтверждения на email:
-
-### Gmail (рекомендуется):
-1. Зайдите в Google Account → Security → 2-Step Verification → включите
-2. Внизу страницы → App passwords → создайте пароль для "Mail"
-3. Скопируйте 16-значный пароль (вида `abcd efgh ijkl mnop`)
-4. В файле `.env` заполните:
-```
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=ваш_email@gmail.com
-SMTP_PASS=abcd efgh ijkl mnop
-```
-5. Перезапустите сервер
-
-### Yandex:
-```
-SMTP_HOST=smtp.yandex.ru
-SMTP_PORT=587
-SMTP_USER=ваш_email@yandex.ru
-SMTP_PASS=пароль_приложения
-```
-
-### Mail.ru:
-```
-SMTP_HOST=smtp.mail.ru
-SMTP_PORT=587
-SMTP_USER=ваш_email@mail.ru
-SMTP_PASS=пароль_приложения
-```
-
-Если SMTP не настроен, код отображается в консоли сервера (для разработки).
