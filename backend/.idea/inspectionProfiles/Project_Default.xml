@@ -1,0 +1,35 @@
+<component name="InspectionProjectProfileManager">
+  <profile version="1.0">
+    <option name="myName" value="Project Default" />
+    <inspection_tool class="LanguageDetectionInspection" enabled="false" level="WEAK WARNING" enabled_by_default="false" />
+    <inspection_tool class="PyPackageRequirementsInspection" enabled="true" level="WARNING" enabled_by_default="true">
+      <option name="ignoredPackages">
+        <list>
+          <option value="PyMySQL" />
+          <option value="PyQt6" />
+          <option value="PyQt6-Qt6" />
+          <option value="PyQt6_sip" />
+          <option value="streamlit" />
+          <option value="pandas" />
+          <option value="plotly" />
+          <option value="openpyxl" />
+          <option value="xlrd" />
+          <option value="altgraph" />
+          <option value="numpy" />
+          <option value="pefile" />
+          <option value="pyinstaller" />
+          <option value="pyinstaller-hooks-contrib" />
+          <option value="pywin32-ctypes" />
+          <option value="bcrypt" />
+          <option value="greenlet" />
+          <option value="packaging" />
+          <option value="pillow" />
+          <option value="PyQt6-QtSvg" />
+          <option value="setuptools" />
+          <option value="SQLAlchemy" />
+          <option value="typing_extensions" />
+        </list>
+      </option>
+    </inspection_tool>
+  </profile>
+</component>

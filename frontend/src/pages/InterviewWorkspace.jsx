@@ -1,0 +1,66 @@
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { Play, Send, Flag, MessageSquare, Terminal, Clock, Pause, Headphones, PlayCircle } from 'lucide-react';
+import { interviewAPI, chatAPI, metricsAPI, anticheatAPI } from '../api/client';
+const LM={junior:30,middle:40,senior:50};
+export default function InterviewWorkspace(){
+  const{interviewId}=useParams();const navigate=useNavigate();
+  const[task,setTask]=useState(null);const[code,setCode]=useState('');const[lang,setLang]=useState('python');
+  const[testRes,setTestRes]=useState(null);const[chat,setChat]=useState([]);const[chatIn,setChatIn]=useState('');
+  const[loading,setLoading]=useState(false);const[confirmAction,setConfirmAction]=useState(null);const[submitting,setSubmitting]=useState(false);
+  const[iv,setIv]=useState(null);const[panel,setPanel]=useState('task');const[showConsole,setShowConsole]=useState(false);
+  const[timeLeft,setTimeLeft]=useState(null);const[paused,setPaused]=useState(false);const[pauseUsed,setPauseUsed]=useState(false);const[pauseLeft,setPauseLeft]=useState(0);
+  const chatEnd=useRef(null);const timerRef=useRef(null);const pauseRef=useRef(null);const snapRef=useRef(null);
+  useEffect(()=>{loadTask();loadIv();loadChat();
+    snapRef.current=setInterval(()=>{if(code&&interviewId)metricsAPI.recordEvent({interview_id:+interviewId,event_type:'code_snapshot',data:{code}}).catch(()=>{})},30000);
+    const h=()=>{if(document.hidden)anticheatAPI.reportEvent({interview_id:+interviewId,event_type:'tab_switch'}).catch(()=>{})};
+    document.addEventListener('visibilitychange',h);return()=>{clearInterval(snapRef.current);clearInterval(timerRef.current);clearInterval(pauseRef.current);document.removeEventListener('visibilitychange',h)};
+  },[interviewId]);
+  useEffect(()=>{chatEnd.current?.scrollIntoView({behavior:'smooth'})},[chat]);
+  const loadTask=async()=>{try{const{data}=await interviewAPI.getCurrentTask(interviewId);setTask(data);setCode(`# Задача: ${data.title}\n\n`)}catch{}};
+  const loadIv=async()=>{try{const{data}=await interviewAPI.get(interviewId);setIv(data);if(data.status==='completed')navigate(`/results/${interviewId}`);if(!timerRef.current){setTimeLeft((LM[data.level]||40)*60);startT()}}catch{}};
+  const loadChat=async()=>{try{const{data}=await chatAPI.history(interviewId);setChat(data.map(m=>({sender:m.sender,content:m.content})))}catch{}};
+  const startT=()=>{timerRef.current=setInterval(()=>setTimeLeft(p=>{if(p===null)return null;if(p<=1){clearInterval(timerRef.current);return 0}return p-1}),1000)};
+  const togglePause=()=>{if(paused){setPaused(false);clearInterval(pauseRef.current);startT();return}if(pauseUsed)return;clearInterval(timerRef.current);timerRef.current=null;setPaused(true);setPauseUsed(true);setPauseLeft(300);pauseRef.current=setInterval(()=>setPauseLeft(p=>{if(p<=1){clearInterval(pauseRef.current);setPaused(false);startT();return 0}return p-1}),1000)};
+  const runTests=async()=>{if(!task)return;setLoading(true);setShowConsole(true);try{const{data}=await interviewAPI.submitSolution(interviewId,task.id,{code,language:lang,is_final:false});setTestRes(data)}catch(e){setTestRes({error:e.response?.data?.detail||'Ошибка'})}finally{setLoading(false)}};
+  const submitFinal=async()=>{if(!task)return;setSubmitting(true);try{const{data}=await interviewAPI.submitSolution(interviewId,task.id,{code,language:lang,is_final:true});setTestRes(data);setShowConsole(true);const{data:u}=await interviewAPI.get(interviewId);setIv(u);if(u.status==='completed')setTimeout(()=>navigate(`/results/${interviewId}`),2000);else setTimeout(async()=>{setTestRes(null);setShowConsole(false);await loadTask()},1500)}catch(e){alert(e.response?.data?.detail||'Ошибка')}finally{setSubmitting(false)}};
+  const sendMsg=async()=>{if(!chatIn.trim()||!task)return;const m=chatIn.trim();setChatIn('');setChat(p=>[...p,{sender:'candidate',content:m}]);try{const{data}=await chatAPI.send({interview_id:+interviewId,task_id:task.id,message:m});setChat(p=>[...p,{sender:'ai',content:data.content}])}catch{setChat(p=>[...p,{sender:'ai',content:'AI временно недоступен.'}])}};
+  const handlePaste=e=>{const t=e.clipboardData?.getData('text')||'';anticheatAPI.reportEvent({interview_id:+interviewId,event_type:t.length>50?'paste':'copy',details:{length:t.length}}).catch(()=>{})};
+  const handleKey=useCallback(e=>{if(e.key==='Tab'){e.preventDefault();const ta=e.target;const s=ta.selectionStart;const nc=code.substring(0,s)+'    '+code.substring(ta.selectionEnd);setCode(nc);setTimeout(()=>{ta.selectionStart=ta.selectionEnd=s+4},0)}},[code]);
+  const lines=code.split('\n');
+  return(<div className="h-screen flex flex-col bg-gray-50 text-gray-900">
+    <div className="flex items-center justify-between px-4 py-2 bg-white border-b border-gray-200 shrink-0">
+      <div className="flex items-center gap-3"><span className="font-bold text-blue-600">Задача {task?.order_number||'?'}/{iv?.total_tasks||5}</span><span className="text-sm text-gray-600 hidden md:inline">{task?.title}</span></div>
+      <div className="flex items-center gap-2">
+        {timeLeft!==null&&<div className={`flex items-center gap-1 px-3 py-1.5 rounded text-sm font-mono ${paused?'bg-blue-600':timeLeft<300?'bg-red-600 animate-pulse':timeLeft<600?'bg-yellow-600':'bg-gray-200'}`}><Clock className="w-4 h-4"/>{paused?`⏸ ${Math.floor(pauseLeft/60)}:${(pauseLeft%60).toString().padStart(2,'0')}`:`${Math.floor(timeLeft/60).toString().padStart(2,'0')}:${(timeLeft%60).toString().padStart(2,'0')}`}</div>}
+        {!paused&&!pauseUsed&&timeLeft!==null&&<button onClick={togglePause} className="px-2 py-1.5 bg-gray-200 hover:bg-gray-300 rounded text-xs flex items-center gap-1"><Pause className="w-3 h-3"/>Пауза</button>}
+        {paused&&<button onClick={togglePause} className="px-3 py-1.5 bg-green-600 hover:bg-green-700 rounded text-xs flex items-center gap-1 animate-pulse"><PlayCircle className="w-3 h-3"/>Продолжить</button>}
+        <button onClick={()=>setConfirmAction({title:"Завершить интервью",message:"Вы уверены, что хотите досрочно завершить собеседование? Результаты по уже отправленным задачам будут сохранены.",danger:true,confirmText:"Завершить",onConfirm:async()=>{try{const{data}=await interviewAPI.get(interviewId);if(data.status!=="completed"){navigate(`/results/${interviewId}`)}}catch{navigate("/interviews")}}})} className="px-3 py-1 bg-red-600/80 hover:bg-red-700 rounded text-xs" title="Завершить досрочно">Завершить</button><button onClick={()=>navigate('/support-request')} className="p-1.5 hover:bg-gray-50 rounded" title="Техподдержка"><Headphones className="w-4 h-4 text-purple-600"/></button>
+        <button onClick={()=>setPanel(panel==='chat'?'task':'chat')} className={`flex items-center gap-1 px-3 py-1.5 rounded text-sm ${panel==='chat'?'bg-blue-600':'bg-gray-200'}`}><MessageSquare className="w-4 h-4"/>Чат</button>
+      </div></div>
+    <div className="flex-1 flex overflow-hidden min-h-0">
+      <div className="w-80 lg:w-96 border-r border-gray-200 flex flex-col shrink-0 overflow-hidden">
+        <div className="flex border-b border-gray-200 shrink-0"><button onClick={()=>setPanel('task')} className={`flex-1 px-3 py-2 text-sm font-medium ${panel==='task'?'bg-gray-200 text-gray-900':'text-gray-600'}`}>Условие</button><button onClick={()=>setPanel('chat')} className={`flex-1 px-3 py-2 text-sm font-medium ${panel==='chat'?'bg-gray-200 text-gray-900':'text-gray-600'}`}>AI-Интервьюер</button></div>
+        {panel==='task'?(<div className="flex-1 overflow-y-auto p-4"><h2 className="text-lg font-bold mb-3">{task?.title}</h2><div className="text-gray-600 text-sm whitespace-pre-wrap mb-6">{task?.description}</div>
+          {task?.visible_tests&&<div><h3 className="font-semibold text-sm mb-2 text-gray-600">Примеры:</h3>{(typeof task.visible_tests==='string'?JSON.parse(task.visible_tests):task.visible_tests).map((t,i)=>{const isText=t.input&&t.input.length<=7&&['example','check','c','c2','q','f'].includes(t.input);return(<div key={i} className="bg-white rounded-lg p-3 mb-3 text-xs font-mono">{isText?<><div className="text-gray-600 mb-1">{t.expected?.startsWith('Подсказка')?'💡 Подсказка:':'Пример ответа:'}</div><pre className="text-blue-600 whitespace-pre-wrap">{t.expected?.startsWith('Подсказка')?t.expected.replace('Подсказка: ',''):t.expected}</pre></>:<><div className="text-gray-600 mb-1">Вход:</div><pre className="text-green-600 mb-2">{t.input}</pre><div className="text-gray-600 mb-1">Выход:</div><pre className="text-blue-600">{t.expected}</pre></>}</div>)})}</div>}
+        </div>):(<div className="flex-1 flex flex-col overflow-hidden"><div className="flex-1 overflow-y-auto p-3 space-y-3">{chat.length===0&&<p className="text-gray-600 text-sm p-2">Напишите AI-интервьюеру.</p>}{chat.map((m,i)=><div key={i} className={`flex ${m.sender==='candidate'?'justify-end':'justify-start'}`}><div className={`max-w-[90%] px-3 py-2 rounded-lg text-sm whitespace-pre-wrap ${m.sender==='candidate'?'bg-blue-600':'bg-gray-200'}`}>{m.content}</div></div>)}<div ref={chatEnd}/></div>
+          <div className="p-2 border-t border-gray-200 flex gap-2 shrink-0"><input value={chatIn} onChange={e=>setChatIn(e.target.value)} onKeyDown={e=>e.key==='Enter'&&sendMsg()} className="flex-1 bg-gray-200 text-sm px-3 py-2 rounded border border-gray-300 focus:outline-none focus:border-blue-500" placeholder="Спросить AI..."/><button onClick={sendMsg} className="p-2 bg-blue-600 rounded hover:bg-blue-700"><Send className="w-4 h-4"/></button></div></div>)}</div>
+      <div className="flex-1 flex flex-col min-w-0">
+        <div className="flex items-center justify-between px-3 py-2 bg-white border-b border-gray-200 shrink-0">
+          <select value={lang} onChange={e=>setLang(e.target.value)} className="bg-gray-200 text-sm px-3 py-1 rounded border border-gray-300"><option value="python">Python</option><option value="javascript">JavaScript</option></select>
+          <div className="flex gap-2"><button onClick={runTests} disabled={loading||paused} className="flex items-center gap-1 px-4 py-1.5 bg-green-600 hover:bg-green-700 rounded text-sm font-medium disabled:opacity-50"><Play className="w-4 h-4"/>{loading?'...':'Запустить'}</button>
+            <button onClick={()=>setConfirmAction({title:'Отправка решения',message:'Вы уверены, что хотите отправить решение? После отправки изменить код будет невозможно.',danger:false,confirmText:'Отправить',onConfirm:()=>submitFinal()})} disabled={submitting||paused} className="flex items-center gap-1 px-4 py-1.5 bg-blue-600 hover:bg-blue-700 rounded text-sm font-medium disabled:opacity-50"><Flag className="w-4 h-4"/>{submitting?'...':'Отправить'}</button></div></div>
+        <div className={`flex ${showConsole?'flex-1 min-h-[200px]':'flex-1'} overflow-hidden`}>
+          <div className="bg-gray-950 text-gray-600 font-mono text-sm py-4 px-2 text-right select-none overflow-hidden border-r border-gray-100" style={{minWidth:'3rem'}}>{lines.map((_,i)=><div key={i} style={{height:'1.5rem',lineHeight:'1.5rem'}}>{i+1}</div>)}</div>
+          <textarea value={code} onChange={e=>setCode(e.target.value)} onPaste={handlePaste} onKeyDown={handleKey} className="flex-1 bg-gray-950 text-green-600 font-mono text-sm p-4 resize-none focus:outline-none" style={{lineHeight:'1.5rem',tabSize:4}} spellCheck={false} placeholder="Напишите код..."/></div>
+        {showConsole&&<div className="border-t border-gray-200 max-h-[40%] overflow-y-auto shrink-0" style={{backgroundColor:'#0d1117'}}>
+          <div className="flex items-center justify-between px-3 py-1 bg-white border-b border-gray-200 sticky top-0"><span className="text-xs text-gray-600 flex items-center gap-1"><Terminal className="w-3 h-3"/>Консоль</span><button onClick={()=>setShowConsole(false)} className="text-gray-600 hover:text-gray-900 text-xs">✕</button></div>
+          {testRes&&(testRes.error?<div className="text-red-600 font-mono text-sm p-3">{testRes.error}</div>:<div className="font-mono text-sm p-3 space-y-2">{testRes.stdout&&<pre className="text-green-600 whitespace-pre-wrap">{testRes.stdout}</pre>}{testRes.stderr&&<pre className="text-red-600 whitespace-pre-wrap">{testRes.stderr}</pre>}<div className="text-gray-600 text-xs border-t border-gray-200 pt-2">Тесты: {testRes.passed_visible}/{testRes.total_visible}{testRes.is_final&&` | Балл: ${testRes.score?.toFixed(0)}%`}</div></div>)}</div>}
+      </div></div>
+    {confirmAction&&<div className="fixed inset-0 bg-black/30 flex items-center justify-center z-[60]"><div className="bg-white rounded-xl p-6 shadow-2xl border border-gray-200 w-96">
+      <h3 className="font-semibold mb-3">{confirmAction.title}</h3>
+      <p className="text-sm text-gray-600 mb-5">{confirmAction.message}</p>
+      <div className="flex gap-2 justify-end"><button onClick={()=>setConfirmAction(null)} className="px-4 py-2 bg-gray-200 rounded-lg text-sm">Отмена</button><button onClick={()=>{confirmAction.onConfirm();setConfirmAction(null)}} className={`px-4 py-2 rounded-lg text-sm ${confirmAction.danger?'bg-red-600 hover:bg-red-700':'bg-blue-600 hover:bg-blue-700'}`}>{confirmAction.confirmText||'Подтвердить'}</button></div>
+    </div></div>}
+    </div>);
+}
